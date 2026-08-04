@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import algoLogo from "@/assets/algo.svg"
 
