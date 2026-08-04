@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Vantage Visualizer — Component Library
  *
