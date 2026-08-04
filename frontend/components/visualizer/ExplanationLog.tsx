@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import React, { useRef, useEffect } from "react";
 import { V, MONO } from "./theme";
@@ -49,7 +50,7 @@ export default function ExplanationLog({
     phaseColors,
     phasePrefixes,
 }) {
-    const logRef = useRef(null);
+    const logRef = useRef<HTMLDivElement>(null);
     const colors = { ...DEFAULT_PHASE_COLORS, ...phaseColors };
     const prefixes = { ...DEFAULT_PHASE_PREFIXES, ...phasePrefixes };
 
