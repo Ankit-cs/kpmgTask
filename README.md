@@ -120,6 +120,15 @@ npm run dev
 
 Navigate to `http://localhost:3000` to interact with the platform.
 
+## Tradeoffs & Design Decisions
+
+Building a secure, AI-powered code evaluation platform required several deliberate architectural tradeoffs:
+
+- **Docker Containers vs. WebAssembly (Wasm) Execution**: We chose to spin up ephemeral Docker containers for executing untrusted user code. **Tradeoff**: While Docker introduces slight latency (cold starts) and requires more server resources than browser-based Wasm execution, it guarantees absolute isolation, supports arbitrary system dependencies, and perfectly mirrors a real-world server environment.
+- **Async BullMQ vs. Synchronous API Execution**: Code execution requests are pushed to a Redis-backed queue rather than handled synchronously by the Express server. **Tradeoff**: This adds infrastructure complexity (requiring Redis and background workers), but strictly prevents the Node.js event loop from blocking during heavy peak-submission loads, ensuring the API remains highly available.
+- **Human-In-The-Loop (HITL) vs. Fully Automated AI**: Doubt drafts are kept in a `DRAFT` state for human teacher review rather than being instantly published. **Tradeoff**: This introduces a slight delay for students waiting for answers, but guarantees absolute quality control and prevents AI hallucinations from misleading students on complex topics.
+- **Gemini 1.5-Flash (Primary) vs. Groq Llama-3 (Fallback)**: We utilize Gemini 1.5-Flash as our primary LLM due to its massive context window (essential for our 0xMemory historical context injection). **Tradeoff**: Relying on a single provider creates a single point of failure, which is why we implemented a LangChain fallback to Groq. While Groq's Llama-3 is blisteringly fast, its smaller context window acts as a functional tradeoff when operating in fallback mode.
+
 ## Feedback and Contributing
 
 We welcome contributions to expand the capabilities of this learning platform. If you encounter issues with the Docker sandbox configurations on specific operating systems, please open an issue with your exact Docker daemon logs. We are actively looking for contributors to help expand the list of supported languages (currently limited to Python and JavaScript) and to write more extensive automated test suites for the React components.
