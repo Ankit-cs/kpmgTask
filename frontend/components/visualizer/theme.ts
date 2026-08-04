@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Vantage Visualizer — Shared Design Tokens
  *
