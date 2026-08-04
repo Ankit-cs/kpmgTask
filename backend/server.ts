@@ -48,7 +48,7 @@ app.post("/api/execute", async (req: Request, res: Response): Promise<void> => {
 // Polling endpoint for frontend to check job status
 app.get("/api/execute/:jobId", async (req: Request, res: Response): Promise<void> => {
     try {
-        const { jobId } = req.params;
+        const jobId = req.params.jobId as string;
         const job = await executionQueue.getJob(jobId);
         
         if (!job) {
@@ -79,3 +79,8 @@ app.listen(PORT, async () => {
         console.error("Failed to initialize worker pool:", error);
     }
 });
+// Server initialized with dynamic docker detection
+
+
+
+
