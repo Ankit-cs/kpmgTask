@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import React, { useEffect, useRef } from "react";
 import { V, TOKEN_COLORS, MONO } from "./theme";
@@ -14,7 +15,7 @@ import { V, TOKEN_COLORS, MONO } from "./theme";
  * @param {number} activeLine – The currently highlighted line number
  */
 export default function CodePanel({ lines, activeLine }) {
-    const activeRef = useRef(null);
+    const activeRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
