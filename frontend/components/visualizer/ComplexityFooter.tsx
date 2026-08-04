@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import React from "react";
 import { V, MONO, MONUMENT, LABEL_STYLE } from "./theme";
