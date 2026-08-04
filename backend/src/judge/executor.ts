@@ -80,21 +80,17 @@ export interface BatchExecutionResult {
 // EXECUTION MODE DETECTION
 // ─────────────────────────────────────────────────
 
-let EXECUTION_MODE: 'docker' | 'host' | null = (process.env.MODE as any) || null;
-
 export function detectMode(): 'docker' | 'host' {
-  if (EXECUTION_MODE) return EXECUTION_MODE;
+  if (process.env.MODE === 'docker' || process.env.MODE === 'host') {
+    return process.env.MODE;
+  }
 
   try {
     execSync("docker info", { stdio: "ignore", timeout: 5000 });
-    EXECUTION_MODE = "docker";
-    console.log("🐳 Docker detected - using containerized sandbox execution");
+    return "docker";
   } catch {
-    EXECUTION_MODE = "host";
-    console.log("💻 Docker not found - using direct host execution (dev mode)");
-    console.log("   Install Docker & run 'npm run build-sandboxes' for production use.");
+    return "host";
   }
-  return EXECUTION_MODE;
 }
 
 function cleanup(sessionDir: string) {
@@ -108,7 +104,7 @@ function cleanup(sessionDir: string) {
 }
 
 function getJavaFilename(code: string): string {
-  const match = code.match(/public\s+class\s+(\w+)/);
+  const match = code.match(/(?:public\s+)?class\s+(\w+)/);
   return (match ? match[1] : "Solution") + ".java";
 }
 
@@ -170,7 +166,7 @@ function compileInWorker(worker: pool.Worker, language: pool.Language, filename:
 }
 
 function runInWorker(worker: pool.Worker, language: pool.Language, filename: string): ExecutionResult {
-  let cmd;
+  let cmd = "";
   if (language === "cpp" || language === "c" || language === "go") {
     cmd = `/workspace/solution < /workspace/input.txt`;
   } else if (language === "java") {
@@ -202,6 +198,102 @@ function runInWorker(worker: pool.Worker, language: pool.Language, filename: str
   return { stdout: result.stdout, stderr: "", time, exitCode: 0 };
 }
 
+async function executeOnHost(language: pool.Language, code: string, input: string): Promise<ExecutionResult> {
+  const sessionId = uuidv4();
+  const sessionDir = path.join(TEMP_DIR, sessionId);
+
+  try {
+    fs.mkdirSync(sessionDir, { recursive: true });
+
+    let filename = "solution.cpp";
+    const exeName = process.platform === "win32" ? "solution.exe" : "solution";
+
+    if (language === "java") {
+      filename = getJavaFilename(code);
+    } else if (language === "c") {
+      filename = "solution.c";
+    } else if (language === "go") {
+      filename = "main.go";
+    } else if (language === "nodejs") {
+      filename = "index.js";
+    } else if (language === "python") {
+      filename = "main.py";
+    }
+
+    const filePath = path.join(sessionDir, filename);
+    const inputPath = path.join(sessionDir, "input.txt");
+    const exePath = path.join(sessionDir, exeName);
+
+    fs.writeFileSync(filePath, code, "utf-8");
+    fs.writeFileSync(inputPath, input || "", "utf-8");
+
+    // Compilation step
+    let compileCmd = "";
+    if (language === "cpp") {
+      compileCmd = `g++ -std=c++17 -O2 -o "${exePath}" "${filePath}"`;
+    } else if (language === "c") {
+      compileCmd = `gcc -O2 -o "${exePath}" "${filePath}"`;
+    } else if (language === "go") {
+      compileCmd = `go build -o "${exePath}" "${filePath}"`;
+    } else if (language === "java") {
+      compileCmd = `javac "${filePath}"`;
+    }
+
+    if (compileCmd) {
+      try {
+        execSync(compileCmd, { cwd: sessionDir, timeout: COMPILE_TIMEOUT, stdio: "pipe" });
+      } catch (err: any) {
+        return {
+          stdout: "",
+          stderr: `Compilation Error:\n${err.stderr?.toString() || err.stdout?.toString() || err.message || "Failed to compile on host"}`,
+          time: 0,
+          exitCode: 1,
+          compilationError: true,
+        };
+      }
+    }
+
+    // Execution step
+    let runCmd = "";
+    if (language === "cpp" || language === "c" || language === "go") {
+      runCmd = `"${exePath}"`;
+    } else if (language === "java") {
+      const className = filename.replace(".java", "");
+      runCmd = `java -cp "${sessionDir}" ${className}`;
+    } else if (language === "nodejs") {
+      runCmd = `node "${filePath}"`;
+    } else if (language === "python") {
+      runCmd = `python "${filePath}"`;
+    }
+
+    const start = Date.now();
+    try {
+      const stdout = execSync(runCmd, {
+        cwd: sessionDir,
+        input: input || "",
+        timeout: TIME_LIMIT,
+        maxBuffer: 10 * 1024 * 1024,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      const time = Date.now() - start;
+      return { stdout: stdout.toString(), stderr: "", time, exitCode: 0 };
+    } catch (err: any) {
+      const time = Date.now() - start;
+      if (err.killed || err.signal === "SIGTERM") {
+        return { stdout: "", stderr: "Time Limit Exceeded", time, exitCode: -1, tle: true };
+      }
+      return {
+        stdout: err.stdout?.toString() || "",
+        stderr: `Runtime Error:\n${err.stderr?.toString() || err.message}`,
+        time,
+        exitCode: err.status || 1,
+      };
+    }
+  } finally {
+    cleanup(sessionDir);
+  }
+}
+
 import { getTestCase } from "../services/cloudflare-kv.js";
 
 /**
@@ -227,8 +319,8 @@ export async function executeCode(language: pool.Language, code: string, input: 
   if (mode === "docker") {
     result = await executeInDockerPool(language, code, input);
   } else {
-    // Fallback logic
-    result = await executeInDockerPool(language, code, input);
+    // Host Fallback execution
+    result = await executeOnHost(language, code, input);
   }
 
   try {
