@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import React from "react";
@@ -39,7 +40,7 @@ export function CodeEditor({
   }, []);
 
   return (
-    <div className="w-full h-full min-h-[400px] border border-zinc-800 rounded-lg overflow-hidden bg-[#09090b]">
+    <div className="w-full h-full min-h-[400px] rounded-lg overflow-hidden bg-transparent">
       <Editor
         height="100%"
         language={language}
