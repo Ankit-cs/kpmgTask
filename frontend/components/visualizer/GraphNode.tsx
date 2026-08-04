@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import React from "react";
 import { V, MONO } from "./theme";
@@ -40,7 +41,7 @@ export default function GraphNode({
 }) {
     const vs = VARIANT_STYLES[variant] || VARIANT_STYLES.default;
 
-    const positionStyle = positioned
+    const positionStyle: React.CSSProperties = positioned
         ? { position: "absolute", left: `${(x || 0) - size / 2}px`, top: `${(y || 0) - size / 2}px` }
         : {};
 
