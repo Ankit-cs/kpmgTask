@@ -1,3 +1,125 @@
-# Frontend
+# AI-Powered Code Grading & Doubt Resolution Portal
 
-This is the Next.js frontend for the application.
+![Next.js](https://img.shields.io/badge/Next.js-React-black) ![Express](https://img.shields.io/badge/Express-Node.js-green) ![Docker](https://img.shields.io/badge/Docker-Sandbox-blue) ![Redis](https://img.shields.io/badge/BullMQ-Redis-red)
+
+> *Empowering education through secure, scalable, and intelligent automated workflows.*
+
+## Highlights
+
+- **Bulletproof Code Sandbox:** Ephemeral, isolated Docker containers ensure 100% safe execution of untrusted student code.
+- **Asynchronous Scalability:** BullMQ & Redis decouple execution from HTTP threads, preventing bottlenecks during peak submission times.
+- **Enterprise AI Security:** Stage-2 prompt injection isolation and deterministic Regex filtering actively block LLM hallucinations and malicious queries.
+- **High-Availability LLM Engine:** A resilient LangChain pipeline defaults to Google Gemini (1.5-Flash) but instantly hot-swaps to Groq (Llama-3) upon failure.
+- **0xMemory Historical Context Injection:** The AI Teaching Assistant dynamically retrieves a student's past code submissions from the database and injects them into its context window, providing highly personalized guidance.
+- **Human-In-The-Loop (HITL) Workflow:** A strict state machine allows teachers to intercept, edit, approve, or reject AI-drafted responses before publishing them to the student board.
+- **Framer Motion UI:** A completely responsive, highly polished Next.js frontend featuring fluid animations and a split-pane Monaco editor.
+
+## Overview
+
+Evaluating code manually is slow, and generic AI feedback is often noisy or insecure. This platform bridges the gap by functioning as an intelligent, full-stack Learning Management System (LMS). 
+
+It empowers students to submit code into a secure grading sandbox, while simultaneously generating deep, qualitative feedback using structured AI responses. Beyond grading, it features an interactive **Doubt Resolution Board** where the AI acts as a Teaching Assistant, drafting personalized responses using historical memory context, which then traverse a strict state machine controlled by human teachers.
+
+### Authors
+
+Architected and developed for the KPMG Assignment.
+
+## System Architecture
+
+The system separates concerns cleanly across the stack to ensure maximum performance and security.
+
+```mermaid
+graph TD
+    A[Student Client] -->|Submit Code or Doubt| B(Next.js Frontend)
+    B -->|HTTP Requests| C{Express.js Backend}
+    
+    C -->|Code Execution| D[BullMQ + Redis]
+    D -->|Process Async| E(Worker Process)
+    E -->|Execute Code| F[Docker Sandbox]
+    
+    C -->|Historical Query| J[(PostgreSQL)]
+    J -->|Context Injection| G
+    
+    E -->|Grade Code| G[LangChain + Zod]
+    C -->|Draft Doubt| G
+    
+    G -->|Primary| H((Gemini 1.5))
+    G -.->|Fallback| I((Groq Llama-3))
+    
+    G -->|Save Results & Drafts| J
+```
+
+### 1. Frontend Client (Next.js)
+The presentation layer is built on React 18 and Next.js App Router. It leverages Tailwind CSS for utility-first styling and Framer Motion for complex entrance and exit animations. The core IDE experience is powered by Microsoft's Monaco Editor, giving students a VS-Code-like experience in the browser. When a user executes code, the frontend enters a highly optimized, non-blocking HTTP polling loop to fetch the async results from the BullMQ processor.
+
+### 2. Execution Engine (Docker & BullMQ)
+Security is the absolute priority when dealing with untrusted user code. Instead of executing code directly on the Node.js server, the Express backend pushes execution payloads into a Redis-backed BullMQ queue. A background worker picks up these jobs and spins up an ephemeral Docker container for every single submission. The container lacks internet access and is heavily restricted by memory and CPU constraints. Once the execution finishes (or times out), the container is immediately destroyed.
+
+### 3. AI Grading & Context Memory (LangChain)
+The grading system goes beyond simple string matching. We use LangChain to orchestrate a complex AI pipeline. The primary agent defaults to Google's Gemini 1.5-Flash for rapid inference. If the API rate limits or times out, LangChain's `.withFallbacks()` method automatically reroutes the prompt to Groq's Llama-3.3-70B model. 
+
+For the Doubt Board, the AI implements **0xMemory-style Historical Context Injection**. Before drafting an answer, the backend fetches the student's recent code submissions from Prisma and injects them into the LLM's context window, allowing the AI to deliver hyper-personalized guidance based on what the student was recently struggling with.
+
+### 4. Human-In-The-Loop (HITL) Workflow
+All AI-generated doubt drafts enter a strict `DRAFT` state within the PostgreSQL database. Human teachers utilize dedicated API endpoints to intercept these drafts. They can seamlessly edit the AI's response to add human nuance, approve it for publication, or reject it entirely, ensuring 100% quality control.
+
+### 5. AI Security Guardrails
+Drawing inspiration from enterprise security tools, this application implements a dual-layer defense against prompt injection and LLM hallucinations. 
+- **Layer 1 (Prompt Level):** Uses delimiter isolation techniques (e.g., `###STUDENT_CODE_START###`) to ensure the LLM treats user input strictly as passive data, not executable instructions.
+- **Layer 2 (Deterministic Filtering):** A post-processing Regex filter scans the AI's vulnerability report. If the LLM hallucinates a low-priority finding (like a Denial of Service or rate-limiting issue), the Regex engine silently drops it before it hits the database.
+
+## Local Development Setup
+
+### 1. Prerequisites
+- Node.js (v18+)
+- Docker Desktop (Must be running for code execution)
+- PostgreSQL (Local or managed)
+- Redis instance (Local or Upstash)
+
+### 2. Environment Variables
+Create a `.env` file in the `backend/` directory.
+
+```env
+# Database Configuration
+DATABASE_URL="postgresql://postgres:password@localhost:5432/grading_portal"
+
+# BullMQ Redis Configuration
+REDIS_URL="redis://localhost:6379"
+
+# AI Provider Keys
+GEMINI_API_KEY="your_gemini_key_here"
+GROQ_API_KEY="your_groq_key_here"
+```
+
+### 3. Database Initialization
+We use Prisma as our strictly-typed ORM. Navigate to the backend folder and apply the schema to your Postgres instance.
+
+```bash
+cd task/backend
+npm install
+npx prisma generate
+npx prisma db push
+```
+
+### 4. Start the Application
+
+The backend serves both the REST API and the BullMQ Worker.
+```bash
+# Terminal 1: Start the Backend
+cd task/backend
+npm run dev
+```
+
+The frontend uses Next.js server-side rendering.
+```bash
+# Terminal 2: Start the Frontend
+cd task/frontend
+npm install
+npm run dev
+```
+
+Navigate to `http://localhost:3000` to interact with the platform.
+
+## Feedback and Contributing
+
+We welcome contributions to expand the capabilities of this learning platform. If you encounter issues with the Docker sandbox configurations on specific operating systems, please open an issue with your exact Docker daemon logs. We are actively looking for contributors to help expand the list of supported languages (currently limited to Python and JavaScript) and to write more extensive automated test suites for the React components.
