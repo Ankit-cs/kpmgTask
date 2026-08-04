@@ -27,12 +27,17 @@ if (process.env.GROQ_API_KEY) {
   llm = primaryLlm.withFallbacks([fallbackLlm]);
 }
 
-// Mock token usage logger
 async function logTokenUsage(studentId: string, action: string, inputTokens: number, outputTokens: number, assignmentId?: string) {
     try {
+        const user = await prisma.user.upsert({
+            where: { email: studentId },
+            update: {},
+            create: { email: studentId, name: 'Demo Student' }
+        });
+
         await prisma.tokenUsage.create({
             data: {
-                studentId,
+                studentId: user.id,
                 action,
                 inputTokens,
                 outputTokens,
