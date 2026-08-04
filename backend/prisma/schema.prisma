@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String       @id @default(uuid())
+  role        Role         @default(STUDENT)
+  name        String
+  email       String       @unique
+  submissions Submission[]
+  doubts      Doubt[]
+  tokenUsages TokenUsage[]
+}
+
+model TokenUsage {
+  id           String     @id @default(uuid())
+  studentId    String
+  student      User       @relation(fields: [studentId], references: [id])
+  assignmentId String?
+  inputTokens  Int
+  outputTokens Int
+  action       String     // "CodeReview", "DoubtDraft", "SecurityCheck"
+  createdAt    DateTime   @default(now())
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+}
+
+model Assignment {
+  id          String       @id @default(uuid())
+  title       String
+  description String
+  testCases   TestCase[]
+  submissions Submission[]
+}
+
+model TestCase {
+  id           String     @id @default(uuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  input        String
+  expectedOut  String
+}
+
+model Submission {
+  id              String     @id @default(uuid())
+  studentId       String
+  student         User       @relation(fields: [studentId], references: [id])
+  assignmentId    String
+  assignment      Assignment @relation(fields: [assignmentId], references: [id])
+  code            String
+  language        String
+  status          String     // Accepted, Wrong Answer, Compilation Error, etc.
+  executionLedger Json       // Stores exit codes, exact stdout, test results
+  codeFeedback    String?    // AI reviewer feedback
+  createdAt       DateTime   @default(now())
+}
+
+model Doubt {
+  id        String          @id @default(uuid())
+  studentId String
+  student   User            @relation(fields: [studentId], references: [id])
+  content   String
+  responses DoubtResponse[]
+  createdAt DateTime        @default(now())
+}
+
+model DoubtResponse {
+  id        String         @id @default(uuid())
+  doubtId   String
+  doubt     Doubt          @relation(fields: [doubtId], references: [id])
+  author    String         // "AI" or "Teacher Name"
+  content   String
+  status    ResponseStatus @default(DRAFT)
+  createdAt DateTime       @default(now())
+}
+
+enum ResponseStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
