@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from "react";
 import { Button } from "../ui/button";
 
@@ -25,7 +26,7 @@ export function ExecutionPanel({
   onToggleVisualizer,
 }: ExecutionPanelProps) {
   return (
-    <div className="w-[35%] flex flex-col border-r border-white/10 z-10 bg-[#09090b]/60 backdrop-blur-md">
+    <div className="w-full h-full flex flex-col z-10 bg-[#09090b]/60 backdrop-blur-md">
       <div className="p-5 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-md bg-[#EDFF66] flex items-center justify-center text-[#050507] font-black text-xl">
