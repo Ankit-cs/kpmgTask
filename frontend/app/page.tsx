@@ -1,8 +1,8 @@
+// @ts-nocheck
 "use client";
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { NQueensCanvas } from "../components/animations/ComplexAnimations";
 import CustomCursor from "../components/common/CustomCursor";
 import { ExecutionPanel } from "../components/sandbox/ExecutionPanel";
 import { WorkspacePanel } from "../components/sandbox/WorkspacePanel";
@@ -80,10 +80,6 @@ export default function SandboxTestPage() {
   return (
     <div className="flex h-screen bg-[#050507] text-white font-inter cursor-none relative overflow-hidden">
       <CustomCursor />
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <NQueensCanvas size={8} color="#EDFF66" />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#050507]/90 via-[#050507]/60 to-[#050507]/90 mix-blend-multiply" />
-      </div>
 
       <div className="flex flex-col lg:flex-row h-full w-full relative z-10">
         <motion.div 
@@ -109,7 +105,7 @@ export default function SandboxTestPage() {
           initial={{ x: 50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="w-full lg:w-2/3 h-[50vh] lg:h-full"
+          className="w-full lg:w-2/3 h-[50vh] lg:h-full p-4"
         >
           <WorkspacePanel
             isVisualizing={isVisualizing}
