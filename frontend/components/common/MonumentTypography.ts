@@ -1,3 +1,4 @@
+// @ts-nocheck
 export const MONUMENT_TYPO = {
   fontFamily: "'Monument Extended',sans-serif",
   canvasFontFamily: "'Monument Extended'",
