@@ -1,0 +1,36 @@
+AI-Powered Code Grading & Doubt Resolution Portal
+Objective
+
+Build a full-stack, AI-enabled LMS module that lets students submit code for automated grading and get AI-
+generated qualitative feedback. Students should also be able to post doubts to a shared board, where an AI
+drafts a suggested answer. Every AI-drafted answer must go through a review workflow before it is shown to
+other students. The goal is to combine reliable backend engineering with safe, well-integrated LLM features.
+Core Functional Requirements
+• Student submits code, runs test cases
+• Store results and submission history
+• Student posts doubts to a board
+• Display submissions and doubt board
+Extended AI Requirements
+• AI feedback on code quality
+• AI drafts answers to doubts
+• Draft → pending → approved workflow
+• Teacher approves, edits, or rejects
+Backend Responsibilities
+• Sandboxed, safe code execution
+• Test-case grading engine and storage
+• LLM integration with response validation
+• Guard against prompt injection attacks
+• Enforce approval state machine in DB
+Technology Stack
+• Frontend: Next.js / React
+• Backend: Express.js / NestJS
+• Database: PostgreSQL + Prisma / MongoDB + Mongoose
+• AI: LangChain, LangGraph, Mem0, AI SDK
+Evaluation Focus
+• Sandbox execution safety
+• Prompt injection resilience
+• Approval workflow correctness
+• Code structure and design quality
+• MERN + LLM integration
+Assignment Duration
+• 24 hours from receipt
