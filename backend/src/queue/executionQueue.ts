@@ -2,7 +2,8 @@ import { Queue, Worker } from "bullmq";
 import Redis from "ioredis";
 import { executeCode } from "../judge/executor.js";
 
-const redisConnection = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
+const RedisClass = (Redis as any).default || Redis;
+const redisConnection = new RedisClass(process.env.REDIS_URL || "redis://localhost:6379", {
     maxRetriesPerRequest: null, // Required by bullmq
 });
 
@@ -22,7 +23,9 @@ export const executionWorker = new Worker("code-execution", async (job) => {
     return result;
 }, {
     connection: redisConnection,
-    concurrency: 5 // Process up to 5 executions concurrently
+    concurrency: 5, // Process up to 5 executions concurrently
+    lockDuration: 60000, // 60 seconds lock to prevent job stall timeouts during AI feedback
+    stalledInterval: 60000,
 });
 
 executionWorker.on("completed", (job) => {
