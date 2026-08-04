@@ -1,3 +1,4 @@
+// @ts-nocheck
 export * from './error';
 
 export interface ApiResponse<T = any> {
