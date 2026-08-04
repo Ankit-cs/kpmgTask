@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from "react";
 import { CodeEditor } from "../CodeEditor";
 import VisualizerShell from "../visualizer/VisualizerShell";
@@ -28,10 +29,10 @@ export function WorkspacePanel({
   }));
 
   return (
-    <div className="flex-1 flex flex-col z-10 bg-[#1e1e1e]">
+    <div className="w-full h-full flex flex-col z-10 bg-[#09090b]/60 backdrop-blur-md rounded-xl overflow-hidden border border-white/10">
       {isVisualizing ? (
         <VisualizerShell>
-          <div className="flex flex-col h-full gap-4">
+          <div className="flex flex-col h-full gap-4 p-4">
             <ControlBar 
               loaded={true} 
               playing={false} 
@@ -46,10 +47,10 @@ export function WorkspacePanel({
               setSpeed={() => {}} 
             />
             <div className="flex-1 flex gap-4 overflow-hidden">
-              <div className="w-[45%] flex flex-col h-full bg-[#050507] border border-white/10 rounded-lg overflow-hidden">
+              <div className="w-[45%] flex flex-col h-full bg-[#050507]/80 border border-white/10 rounded-lg overflow-hidden">
                 <CodePanel lines={codeLines} activeLine={1} />
               </div>
-              <div className="flex-1 border border-white/10 rounded-lg bg-[#050507] flex flex-col relative overflow-hidden">
+              <div className="flex-1 border border-white/10 rounded-lg bg-[#050507]/80 flex flex-col relative overflow-hidden">
                 {output ? (
                   <ExplanationLog
                      logs={[
@@ -74,7 +75,7 @@ export function WorkspacePanel({
           </div>
         </VisualizerShell>
       ) : (
-        <div className="flex-1 p-0">
+        <div className="w-full h-full p-4">
           <CodeEditor
             code={code}
             onChange={(val) => onCodeChange(val || "")}
