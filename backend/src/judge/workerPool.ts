@@ -49,6 +49,14 @@ let initialized = false;
 export async function initPool(): Promise<void> {
   if (initialized) return;
 
+  try {
+    execSync("docker info", { stdio: "ignore", timeout: 5000 });
+  } catch {
+    console.log("💻 Docker not found - running in direct host mode (dev mode)");
+    initialized = true;
+    return;
+  }
+
   console.log(`\n🏗️  Initializing worker pool (${POOL_SIZE} per language)...\n`);
 
   for (const lang of Object.keys(IMAGES) as Language[]) {
