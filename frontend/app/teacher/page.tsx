@@ -25,7 +25,8 @@ export default function TeacherPortal() {
   const fetchPendingDrafts = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3001/api/doubts/pending");
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_URL}/api/doubts/pending`);
       const data = await res.json();
       setPendingDrafts(data);
     } catch (e) {
@@ -39,7 +40,8 @@ export default function TeacherPortal() {
     try {
       // In a real app we would send the edited content to be saved as well
       // But for this simple implementation, we'll just approve the draft
-      const res = await fetch(`http://localhost:3001/api/doubts/${id}/approve`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_URL}/api/doubts/${id}/approve`, {
         method: "POST",
       });
       if (res.ok) {
@@ -53,7 +55,8 @@ export default function TeacherPortal() {
 
   const handleReject = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/doubts/${id}/reject`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_URL}/api/doubts/${id}/reject`, {
         method: "POST",
       });
       if (res.ok) {

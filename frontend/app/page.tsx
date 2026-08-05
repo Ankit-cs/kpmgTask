@@ -36,7 +36,8 @@ export default function SandboxTestPage() {
     setLoading(true);
     setOutput(null);
     try {
-      const res = await fetch("http://localhost:3001/api/execute", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_URL}/api/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ language, code, input }),
@@ -48,7 +49,8 @@ export default function SandboxTestPage() {
         const jobId = data.jobId;
         const intervalId = setInterval(async () => {
           try {
-            const pollRes = await fetch(`http://localhost:3001/api/execute/${jobId}`);
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const pollRes = await fetch(`${API_URL}/api/execute/${jobId}`);
             const pollData = await pollRes.json();
             
             if (pollData.status === "completed") {
