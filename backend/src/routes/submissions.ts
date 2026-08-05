@@ -7,7 +7,7 @@ const router = express.Router();
 // Get submissions for a student
 router.get("/student/:studentId", async (req: Request, res: Response) => {
     try {
-        const { studentId } = req.params;
+        const studentId = req.params.studentId as string;
         const submissions = await prisma.submission.findMany({
             where: { studentId },
             include: { assignment: true },
