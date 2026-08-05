@@ -18,7 +18,7 @@ export default function DoubtBoard() {
 
   const fetchDoubts = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/doubts");
+      const res = await fetch("http://localhost:5000/api/doubts");
       const data = await res.json();
       setDoubts(data);
     } catch (e) {
@@ -31,7 +31,7 @@ export default function DoubtBoard() {
     setLoading(true);
     try {
       // Mock studentId - in a real app this comes from auth
-      const res = await fetch("http://localhost:3000/api/doubts", {
+      const res = await fetch("http://localhost:5000/api/doubts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ studentId: "student-123", content: newDoubt }),
