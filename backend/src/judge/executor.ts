@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync, execFileSync } from 'child_process';
+import { execSync, execFileSync, exec } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
 import * as os from 'os';
 import * as pool from './workerPool.js';
@@ -80,17 +80,21 @@ export interface BatchExecutionResult {
 // EXECUTION MODE DETECTION
 // ─────────────────────────────────────────────────
 
+let cachedMode: 'docker' | 'host' | null = null;
 export function detectMode(): 'docker' | 'host' {
+  if (cachedMode) return cachedMode;
   if (process.env.MODE === 'docker' || process.env.MODE === 'host') {
-    return process.env.MODE;
+    cachedMode = process.env.MODE as 'docker' | 'host';
+    return cachedMode;
   }
 
   try {
     execSync("docker info", { stdio: "ignore", timeout: 5000 });
-    return "docker";
+    cachedMode = "docker";
   } catch {
-    return "host";
+    cachedMode = "host";
   }
+  return cachedMode;
 }
 
 function cleanup(sessionDir: string) {
@@ -122,10 +126,10 @@ async function executeInDockerPool(language: pool.Language, code: string, input:
     else if (language === "nodejs") filename = "index.js";
     else if (language === "python") filename = "main.py";
     
-    pool.writeToWorker(worker, filename, code);
-    pool.writeToWorker(worker, "input.txt", input);
+    await pool.writeToWorker(worker, filename, code);
+    await pool.writeToWorker(worker, "input.txt", input);
 
-    const compileResult = compileInWorker(worker, language, filename);
+    const compileResult = await compileInWorker(worker, language, filename);
     if (!compileResult.success) {
       return {
         stdout: "",
@@ -136,13 +140,13 @@ async function executeInDockerPool(language: pool.Language, code: string, input:
       };
     }
 
-    return runInWorker(worker, language, filename);
+    return await runInWorker(worker, language, filename);
   } finally {
     pool.release(worker);
   }
 }
 
-function compileInWorker(worker: pool.Worker, language: pool.Language, filename: string): { success: boolean, error?: string } {
+async function compileInWorker(worker: pool.Worker, language: pool.Language, filename: string): Promise<{ success: boolean, error?: string }> {
   let cmd;
   if (language === "cpp") {
     cmd = `g++ -std=c++17 -O2 -o /workspace/solution /workspace/${filename} 2>&1`;
@@ -157,7 +161,7 @@ function compileInWorker(worker: pool.Worker, language: pool.Language, filename:
     return { success: true };
   }
 
-  const result = pool.execInWorker(worker, cmd, { timeout: COMPILE_TIMEOUT });
+  const result = await pool.execInWorker(worker, cmd, { timeout: COMPILE_TIMEOUT });
 
   if (result.exitCode !== 0) {
     return { success: false, error: result.stdout + result.stderr };
@@ -165,7 +169,7 @@ function compileInWorker(worker: pool.Worker, language: pool.Language, filename:
   return { success: true };
 }
 
-function runInWorker(worker: pool.Worker, language: pool.Language, filename: string): ExecutionResult {
+async function runInWorker(worker: pool.Worker, language: pool.Language, filename: string): Promise<ExecutionResult> {
   let cmd = "";
   if (language === "cpp" || language === "c" || language === "go") {
     cmd = `/workspace/solution < /workspace/input.txt`;
@@ -179,7 +183,7 @@ function runInWorker(worker: pool.Worker, language: pool.Language, filename: str
   }
 
   const start = Date.now();
-  const result = pool.execInWorker(worker, cmd, { timeout: TIME_LIMIT });
+  const result = await pool.execInWorker(worker, cmd, { timeout: TIME_LIMIT });
   const time = Date.now() - start;
 
   if (result.killed) {
@@ -196,6 +200,22 @@ function runInWorker(worker: pool.Worker, language: pool.Language, filename: str
   }
 
   return { stdout: result.stdout, stderr: "", time, exitCode: 0 };
+}
+
+function execHostAsync(cmd: string, options: any): Promise<{stdout: string, stderr: string, error: any}> {
+  return new Promise((resolve) => {
+    const child = exec(cmd, options, (error: any, stdout: string | Buffer, stderr: string | Buffer) => {
+      resolve({
+        stdout: stdout?.toString() || "",
+        stderr: stderr?.toString() || "",
+        error,
+      });
+    });
+    if (options.input !== undefined && child.stdin) {
+      child.stdin.write(options.input);
+      child.stdin.end();
+    }
+  });
 }
 
 async function executeOnHost(language: pool.Language, code: string, input: string): Promise<ExecutionResult> {
@@ -240,12 +260,11 @@ async function executeOnHost(language: pool.Language, code: string, input: strin
     }
 
     if (compileCmd) {
-      try {
-        execSync(compileCmd, { cwd: sessionDir, timeout: COMPILE_TIMEOUT, stdio: "pipe" });
-      } catch (err: any) {
+      const compileRes = await execHostAsync(compileCmd, { cwd: sessionDir, timeout: COMPILE_TIMEOUT });
+      if (compileRes.error) {
         return {
           stdout: "",
-          stderr: `Compilation Error:\n${err.stderr?.toString() || err.stdout?.toString() || err.message || "Failed to compile on host"}`,
+          stderr: `Compilation Error:\n${compileRes.stderr || compileRes.stdout || compileRes.error.message || "Failed to compile on host"}`,
           time: 0,
           exitCode: 1,
           compilationError: true,
@@ -267,28 +286,26 @@ async function executeOnHost(language: pool.Language, code: string, input: strin
     }
 
     const start = Date.now();
-    try {
-      const stdout = execSync(runCmd, {
-        cwd: sessionDir,
-        input: input || "",
-        timeout: TIME_LIMIT,
-        maxBuffer: 10 * 1024 * 1024,
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-      const time = Date.now() - start;
-      return { stdout: stdout.toString(), stderr: "", time, exitCode: 0 };
-    } catch (err: any) {
-      const time = Date.now() - start;
-      if (err.killed || err.signal === "SIGTERM") {
+    const runRes = await execHostAsync(runCmd, {
+      cwd: sessionDir,
+      input: input || "",
+      timeout: TIME_LIMIT,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    const time = Date.now() - start;
+    
+    if (runRes.error) {
+      if (runRes.error.killed || runRes.error.signal === "SIGTERM") {
         return { stdout: "", stderr: "Time Limit Exceeded", time, exitCode: -1, tle: true };
       }
       return {
-        stdout: err.stdout?.toString() || "",
-        stderr: `Runtime Error:\n${err.stderr?.toString() || err.message}`,
+        stdout: runRes.stdout,
+        stderr: `Runtime Error:\n${runRes.stderr || runRes.error.message}`,
         time,
-        exitCode: err.status || 1,
+        exitCode: runRes.error.code || 1,
       };
     }
+    return { stdout: runRes.stdout, stderr: "", time, exitCode: 0 };
   } finally {
     cleanup(sessionDir);
   }
@@ -323,44 +340,47 @@ export async function executeCode(language: pool.Language, code: string, input: 
     result = await executeOnHost(language, code, input);
   }
 
-  try {
-    // 1. Generate AI Feedback
-    const status = result.compilationError ? "Compilation Error" : (result.exitCode === 0 ? "Success" : "Runtime Error");
-    const studentId = 'student@example.com';
+  // Fire and forget AI feedback generation and DB save
+  Promise.resolve().then(async () => {
+    try {
+      // 1. Generate AI Feedback
+      const status = result.compilationError ? "Compilation Error" : (result.exitCode === 0 ? "Success" : "Runtime Error");
+      const studentId = 'student@example.com';
 
-    const aiFeedback = await generateCodeFeedback(language, code, status, studentId, assignmentId);
+      const aiFeedback = await generateCodeFeedback(language, code, status, studentId, assignmentId);
 
-    // 2. Save immutable execution ledger to Database
-    await prisma.submission.create({
-        data: {
-            // Hardcoding a dummy student/assignment for demo purposes since we don't have auth yet
-            student: {
-                connectOrCreate: {
-                    where: { email: studentId },
-                    create: { email: studentId, name: 'Demo Student' }
-                }
-            },
-            assignment: {
-                connectOrCreate: {
-                    where: { id: assignmentId },
-                    create: { id: assignmentId, title: 'Demo', description: 'Demo Task' }
-                }
-            },
-            code,
-            language,
-            status,
-            executionLedger: result as any,
-            codeFeedback: aiFeedback
-        }
-    });
+      // 2. Save immutable execution ledger to Database
+      await prisma.submission.create({
+          data: {
+              // Hardcoding a dummy student/assignment for demo purposes since we don't have auth yet
+              student: {
+                  connectOrCreate: {
+                      where: { email: studentId },
+                      create: { email: studentId, name: 'Demo Student' }
+                  }
+              },
+              assignment: {
+                  connectOrCreate: {
+                      where: { id: assignmentId },
+                      create: { id: assignmentId, title: 'Demo', description: 'Demo Task' }
+                  }
+              },
+              code,
+              language,
+              status,
+              executionLedger: result as any,
+              codeFeedback: aiFeedback
+          }
+      });
 
-    // 3. Auto-generate Test Case if it failed logically (Runtime Error)
-    if (status === "Runtime Error") {
-        await generateTestCase(code, assignmentId);
+      // 3. Auto-generate Test Case if it failed logically (Runtime Error)
+      if (status === "Runtime Error") {
+          await generateTestCase(code, assignmentId);
+      }
+    } catch (err) {
+        console.error("Failed to save execution ledger or get AI feedback:", err);
     }
-  } catch (err) {
-      console.error("Failed to save execution ledger or get AI feedback:", err);
-  }
+  });
 
   return result;
 }
