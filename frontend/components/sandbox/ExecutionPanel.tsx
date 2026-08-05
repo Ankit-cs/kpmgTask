@@ -48,6 +48,10 @@ export function ExecutionPanel({
           >
             <option value="cpp">C++</option>
             <option value="java">Java</option>
+            <option value="python">Python</option>
+            <option value="nodejs">Node.js</option>
+            <option value="c">C</option>
+            <option value="go">Go</option>
           </select>
         </div>
 

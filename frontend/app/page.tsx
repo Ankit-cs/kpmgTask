@@ -3,7 +3,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import CustomCursor from "../components/common/CustomCursor";
+
 import { ExecutionPanel } from "../components/sandbox/ExecutionPanel";
 import { WorkspacePanel } from "../components/sandbox/WorkspacePanel";
 
@@ -36,7 +36,7 @@ export default function SandboxTestPage() {
     setLoading(true);
     setOutput(null);
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       const res = await fetch(`${API_URL}/api/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -49,7 +49,7 @@ export default function SandboxTestPage() {
         const jobId = data.jobId;
         const intervalId = setInterval(async () => {
           try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
             const pollRes = await fetch(`${API_URL}/api/execute/${jobId}`);
             const pollData = await pollRes.json();
             
@@ -80,8 +80,7 @@ export default function SandboxTestPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#050507] text-white font-inter cursor-none relative overflow-hidden">
-      <CustomCursor />
+    <div className="flex h-screen bg-[#050507] text-white font-inter relative overflow-hidden">
 
       <div className="flex flex-col lg:flex-row h-full w-full relative z-10">
         <motion.div 
