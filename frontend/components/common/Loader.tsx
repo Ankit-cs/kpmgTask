@@ -22,7 +22,7 @@ export function Loader({ text = "Loading..." }: { text?: string }) {
         
         {/* Center dot */}
         <motion.div
-          className="w-4 h-4 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.8)]"
+          className="w-4 h-4 bg-primary rounded-full shadow-lg shadow-primary/50"
           animate={{ scale: [1, 1.5, 1] }}
           transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
         />
