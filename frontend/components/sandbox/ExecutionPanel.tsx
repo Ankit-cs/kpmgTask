@@ -1,8 +1,10 @@
 // @ts-nocheck
 import React from "react";
 import { Button } from "../ui/button";
+import { Sparkles, Loader2 } from "lucide-react";
 
 interface ExecutionPanelProps {
+  code: string;
   language: string;
   onLanguageChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   input: string;
@@ -15,6 +17,7 @@ interface ExecutionPanelProps {
 }
 
 export function ExecutionPanel({
+  code,
   language,
   onLanguageChange,
   input,
@@ -25,16 +28,40 @@ export function ExecutionPanel({
   isVisualizing,
   onToggleVisualizer,
 }: ExecutionPanelProps) {
+  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
+  const [aiAnalysis, setAiAnalysis] = React.useState<any>(null);
+
+  // Clear analysis when new output comes in
+  React.useEffect(() => {
+    setAiAnalysis(null);
+  }, [output]);
+
+  const handleAiFix = async () => {
+    if (!output?.stderr && !output?.error) return;
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch("http://localhost:3000/api/analyze-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          language,
+          code,
+          stderr: output.stderr || output.error,
+        }),
+      });
+      const data = await res.json();
+      setAiAnalysis(data);
+    } catch (e) {
+      console.error(e);
+      setAiAnalysis({ type: "Error", suggestion: "Failed to connect to AI service." });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     <div className="w-full h-full flex flex-col z-10 bg-[#09090b]/60 backdrop-blur-md">
-      <div className="p-5 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-md bg-[#EDFF66] flex items-center justify-center text-[#050507] font-black text-xl">
-            V
-          </div>
-          <h1 className="text-sm font-black tracking-widest uppercase text-white/90">LMS Sandbox</h1>
-        </div>
-      </div>
+
 
       <div className="flex-1 overflow-auto p-5 space-y-6">
         <div>
@@ -91,11 +118,39 @@ export function ExecutionPanel({
             </label>
             <div className="bg-zinc-900 border border-zinc-800 rounded-md p-4 space-y-2">
               {output.error && (
-                <div>
-                  <span className="text-red-400 font-bold text-xs uppercase">Error</span>
-                  <pre className="text-sm font-mono text-zinc-300 whitespace-pre-wrap mt-1">
+                <div className="relative group mb-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-red-400 font-bold text-xs uppercase">Error</span>
+                    {!output.stderr && (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={handleAiFix} 
+                        disabled={isAnalyzing}
+                        className="h-6 text-xs bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20"
+                      >
+                        {isAnalyzing ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                        AI Fix
+                      </Button>
+                    )}
+                  </div>
+                  <pre className="text-sm font-mono text-zinc-300 whitespace-pre-wrap">
                     {output.error}
                   </pre>
+                  
+                  {!output.stderr && aiAnalysis && (
+                    <div className="mt-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-md">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                        <h4 className="text-sm font-bold text-indigo-300">AI Analysis</h4>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+                        <div><span className="text-zinc-500">Type:</span> <span className="text-zinc-300">{aiAnalysis.type}</span></div>
+                        <div><span className="text-zinc-500">Line:</span> <span className="text-zinc-300">{aiAnalysis.line || "Unknown"}</span></div>
+                      </div>
+                      <p className="text-sm text-zinc-300">{aiAnalysis.suggestion}</p>
+                    </div>
+                  )}
                 </div>
               )}
               {output.status && (
@@ -113,11 +168,37 @@ export function ExecutionPanel({
                 </div>
               )}
               {output.stderr && (
-                <div>
-                  <span className="text-red-400 font-bold text-xs uppercase">Stderr</span>
-                  <pre className="text-sm font-mono text-zinc-300 whitespace-pre-wrap mt-1">
+                <div className="relative group">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-red-400 font-bold text-xs uppercase">Stderr</span>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleAiFix} 
+                      disabled={isAnalyzing}
+                      className="h-6 text-xs bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20"
+                    >
+                      {isAnalyzing ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                      AI Fix
+                    </Button>
+                  </div>
+                  <pre className="text-sm font-mono text-zinc-300 whitespace-pre-wrap">
                     {output.stderr}
                   </pre>
+                  
+                  {aiAnalysis && (
+                    <div className="mt-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-md">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                        <h4 className="text-sm font-bold text-indigo-300">AI Analysis</h4>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+                        <div><span className="text-zinc-500">Type:</span> <span className="text-zinc-300">{aiAnalysis.type}</span></div>
+                        <div><span className="text-zinc-500">Line:</span> <span className="text-zinc-300">{aiAnalysis.line || "Unknown"}</span></div>
+                      </div>
+                      <p className="text-sm text-zinc-300">{aiAnalysis.suggestion}</p>
+                    </div>
+                  )}
                 </div>
               )}
               {output.time !== undefined && (
