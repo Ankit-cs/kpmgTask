@@ -1,4 +1,4 @@
-import { execSync, execFileSync } from 'child_process';
+import { execSync, execFileSync, execFile, exec } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 
@@ -50,9 +50,10 @@ export async function initPool(): Promise<void> {
   if (initialized) return;
 
   try {
-    execSync("docker info", { stdio: "ignore", timeout: 5000 });
-  } catch {
-    console.log("💻 Docker not found - running in direct host mode (dev mode)");
+    execSync("docker info", { stdio: "ignore", timeout: 30000 });
+  } catch (error) {
+    // Silently fall back to host mode if Docker is not present
+    console.error("Docker check failed, falling back but host mode is not fully implemented:", error);
     initialized = true;
     return;
   }
@@ -123,14 +124,11 @@ export function acquire(language: Language): Promise<Worker> {
  */
 export function release(worker: Worker): void {
   // Clean workspace inside the container
-  try {
-    execSync(`docker exec ${worker.name} sh -c "rm -rf /workspace/* /workspace/.* 2>/dev/null; true"`, {
-      timeout: 5000,
-      stdio: "ignore",
-    });
-  } catch {
+  exec(`docker exec ${worker.name} sh -c "rm -rf /workspace/* /workspace/.* 2>/dev/null; true"`, {
+    timeout: 5000
+  }, () => {
     // If cleanup fails, the worker might be dead - it'll be revived on next acquire
-  }
+  });
 
   worker.busy = false;
   worker.execCount++;
@@ -160,39 +158,50 @@ export interface ExecResult {
 /**
  * Execute a command inside a worker container.
  */
-export function execInWorker(worker: Worker, cmd: string, opts: ExecOptions = {}): ExecResult {
-  const timeout = opts.timeout || 10000;
-  const args = ["exec"];
+export function execInWorker(worker: Worker, cmd: string, opts: ExecOptions = {}): Promise<ExecResult> {
+  return new Promise((resolve) => {
+    const timeout = opts.timeout || 10000;
+    const args = ["exec"];
 
-  if (opts.input !== undefined) {
-    args.push("-i"); // keep stdin open
-  }
+    if (opts.input !== undefined) {
+      args.push("-i"); // keep stdin open
+    }
 
-  args.push(worker.name, "sh", "-c", cmd);
+    args.push(worker.name, "sh", "-c", cmd);
 
-  try {
-    const stdout = execFileSync("docker", args, {
-      input: opts.input,
+    const child = execFile("docker", args, {
       timeout,
       maxBuffer: 10 * 1024 * 1024,
-      stdio: ["pipe", "pipe", "pipe"],
+    }, (error: any, stdout: string | Buffer, stderr: string | Buffer) => {
+      if (error) {
+        resolve({
+          stdout: stdout?.toString() || "",
+          stderr: stderr?.toString() || "",
+          exitCode: error.code || 1,
+          killed: !!(error.killed || error.signal === "SIGTERM"),
+        });
+      } else {
+        resolve({
+          stdout: stdout?.toString() || "",
+          stderr: stderr?.toString() || "",
+          exitCode: 0,
+          killed: false,
+        });
+      }
     });
-    return { stdout: stdout.toString(), stderr: "", exitCode: 0, killed: false };
-  } catch (err: any) {
-    return {
-      stdout: err.stdout?.toString() || "",
-      stderr: err.stderr?.toString() || "",
-      exitCode: err.status || 1,
-      killed: !!(err.killed || err.signal === "SIGTERM"),
-    };
-  }
+
+    if (opts.input !== undefined && child.stdin) {
+      child.stdin.write(opts.input);
+      child.stdin.end();
+    }
+  });
 }
 
 /**
  * Write a file into the worker's /workspace.
  */
-export function writeToWorker(worker: Worker, filename: string, content: string): void {
-  execInWorker(worker, `cat > /workspace/${filename}`, {
+export async function writeToWorker(worker: Worker, filename: string, content: string): Promise<void> {
+  await execInWorker(worker, `cat > /workspace/${filename}`, {
     input: content,
     timeout: 5000,
   });
@@ -266,7 +275,7 @@ function startWorker(language: Language, index: number): Worker {
     `--memory=${MEMORY_LIMIT}`,
     `--memory-swap=${MEMORY_LIMIT}`,
     `--cpus=${CPU_LIMIT}`,
-    "--pids-limit", "64",
+    "--pids-limit", "256",
     img
   ];
 
