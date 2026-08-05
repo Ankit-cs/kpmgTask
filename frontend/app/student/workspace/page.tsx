@@ -18,7 +18,7 @@ export default function SandboxTestPage() {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kpmgtask-1.onrender.com';
     const newSocket = io(API_URL);
     setSocket(newSocket);
 

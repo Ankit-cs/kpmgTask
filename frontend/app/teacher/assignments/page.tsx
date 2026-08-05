@@ -14,7 +14,7 @@ export default function TeacherAssignmentsPage() {
   useEffect(() => {
     async function fetchAssignments() {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://kpmgtask-1.onrender.com";
         const res = await fetch(`${API_URL}/api/assignments`);
         if (res.ok) {
           const data = await res.json();

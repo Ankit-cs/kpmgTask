@@ -27,7 +27,7 @@ export default function EditAssignmentPage() {
   useEffect(() => {
     async function fetchAssignment() {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://kpmgtask-1.onrender.com";
         const res = await fetch(`${API_URL}/api/assignments/${assignmentId}`);
         if (res.ok) {
           const data = await res.json();
@@ -74,7 +74,7 @@ export default function EditAssignmentPage() {
     setSaving(true);
     
     try {
-      const res = await fetch(`http://localhost:5000/api/assignments/${assignmentId}`, {
+      const res = await fetch(`https://kpmgtask-1.onrender.com/api/assignments/${assignmentId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, description, constraints, testCases })

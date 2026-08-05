@@ -42,7 +42,7 @@ export function ExecutionPanel({
     if (!output?.stderr && !output?.error) return;
     setIsAnalyzing(true);
     try {
-      const res = await fetch("http://localhost:5000/api/analyze-error", {
+      const res = await fetch("https://kpmgtask-1.onrender.com/api/analyze-error", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -25,7 +25,7 @@ export default function TeacherPortal() {
   const fetchPendingDrafts = async () => {
     setLoading(true);
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kpmgtask-1.onrender.com';
       const res = await fetch(`${API_URL}/api/doubts/pending`);
       const data = await res.json();
       setPendingDrafts(data);
@@ -38,7 +38,7 @@ export default function TeacherPortal() {
 
   const handleApprove = async (id: string, customContent?: string) => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kpmgtask-1.onrender.com';
       
       let res;
       if (customContent) {
@@ -64,7 +64,7 @@ export default function TeacherPortal() {
 
   const handleReject = async (id: string) => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kpmgtask-1.onrender.com';
       const res = await fetch(`${API_URL}/api/doubts/${id}/reject`, {
         method: "POST",
       });
