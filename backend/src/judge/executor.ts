@@ -19,7 +19,7 @@ if (!fs.existsSync(TEMP_DIR)) {
 /** Time limit in milliseconds */
 const TIME_LIMIT = 5000;
 /** Compilation timeout */
-const COMPILE_TIMEOUT = 30000;
+const COMPILE_TIMEOUT = 60000;
 /** Memory limit for containers */
 const MEMORY_LIMIT_MB = 256;
 

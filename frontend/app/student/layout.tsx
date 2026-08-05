@@ -8,7 +8,7 @@ import { BookOpen, History, LayoutDashboard, HelpCircle } from "lucide-react";
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const navItems = [
+  const navItems: { name: string; href: string; icon: any; exact?: boolean }[] = [
     { name: "Workspace", href: "/student/workspace", icon: LayoutDashboard },
     { name: "Questions", href: "/student/assignments", icon: BookOpen },
     { name: "Doubt Board", href: "/doubts", icon: HelpCircle },

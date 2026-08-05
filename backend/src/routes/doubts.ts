@@ -21,13 +21,23 @@ router.post("/", async (req: Request, res: Response) => {
             return;
         }
 
+        // Ensure dummy student exists for demo (match executor.ts dummy user)
+        const user = await prisma.user.upsert({
+            where: { email: 'student@example.com' },
+            update: {},
+            create: {
+                email: 'student@example.com',
+                name: 'Demo Student'
+            }
+        });
+
         // 2. Save the doubt
         const doubt = await prisma.doubt.create({
-            data: { studentId, content }
+            data: { studentId: user.id, content }
         });
 
         // 3. Draft AI answer asynchronously (so student doesn't have to wait)
-        draftDoubtAnswer(content, studentId).then(async (draft) => {
+        draftDoubtAnswer(content, user.id).then(async (draft) => {
             await prisma.doubtResponse.create({
                 data: {
                     doubtId: doubt.id,
@@ -51,7 +61,7 @@ router.get("/", async (req: Request, res: Response) => {
         const doubts = await prisma.doubt.findMany({
             include: {
                 responses: {
-                    where: { status: "APPROVED" }
+                    where: { status: { in: ["APPROVED", "DRAFT"] } }
                 },
                 student: {
                     select: { name: true, email: true }
@@ -130,6 +140,20 @@ router.put("/:responseId/edit", async (req: Request, res: Response): Promise<voi
         });
         res.json(response);
     } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// Delete a doubt
+router.delete("/:id", async (req: Request, res: Response) => {
+    try {
+        const doubtId = req.params.id as string;
+        // Delete responses first due to foreign key constraint
+        await prisma.doubtResponse.deleteMany({ where: { doubtId } });
+        await prisma.doubt.delete({ where: { id: doubtId } });
+        res.json({ success: true });
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ error: "Internal server error" });
     }
 });

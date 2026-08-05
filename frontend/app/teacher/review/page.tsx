@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { useRole } from "../../components/RoleProvider";
+import { useRole } from "@/components/RoleProvider";
 import { useRouter } from "next/navigation";
 
 export default function TeacherPortal() {
@@ -38,12 +38,21 @@ export default function TeacherPortal() {
 
   const handleApprove = async (id: string, customContent?: string) => {
     try {
-      // In a real app we would send the edited content to be saved as well
-      // But for this simple implementation, we'll just approve the draft
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${API_URL}/api/doubts/${id}/approve`, {
-        method: "POST",
-      });
+      
+      let res;
+      if (customContent) {
+        res = await fetch(`${API_URL}/api/doubts/${id}/edit`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: customContent })
+        });
+      } else {
+        res = await fetch(`${API_URL}/api/doubts/${id}/approve`, {
+          method: "POST",
+        });
+      }
+
       if (res.ok) {
         setEditingId(null);
         fetchPendingDrafts();
