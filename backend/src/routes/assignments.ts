@@ -74,7 +74,7 @@ router.post("/", async (req: Request, res: Response) => {
 router.put("/:id", async (req: Request, res: Response) => {
     try {
         const { title, description, constraints, testCases } = req.body;
-        const assignmentId = req.params.id;
+        const assignmentId = req.params.id as string;
 
         // Delete existing test cases
         await prisma.testCase.deleteMany({
@@ -99,8 +99,9 @@ router.put("/:id", async (req: Request, res: Response) => {
         });
 
         // Also push to KV
-        for (let i = 0; i < assignment.testCases.length; i++) {
-            const tc = assignment.testCases[i];
+        const updatedAssignment: any = assignment;
+        for (let i = 0; i < updatedAssignment.testCases.length; i++) {
+            const tc = updatedAssignment.testCases[i];
             const originalTc = testCases[i];
             await putTestCase(assignment.id, tc.id, {
                 input: originalTc.input,
