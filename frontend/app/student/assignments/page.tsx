@@ -12,7 +12,7 @@ export default function StudentAssignmentsPage() {
   useEffect(() => {
     async function fetchAssignments() {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
         const res = await fetch(`${API_URL}/api/assignments`);
         if (res.ok) {
           const data = await res.json();
@@ -28,12 +28,9 @@ export default function StudentAssignmentsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#050507] text-white p-8">
+    <div className="text-white p-8">
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-black tracking-wider uppercase">Assignments</h1>
-          <Button variant="outline" onClick={() => router.push("/")}>Back to Sandbox</Button>
-        </div>
+        <h1 className="text-3xl font-black tracking-wider uppercase mb-8">Questions</h1>
         
         {loading ? (
           <div className="text-zinc-500">Loading assignments...</div>
