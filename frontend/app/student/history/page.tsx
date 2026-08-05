@@ -24,7 +24,7 @@ export default function StudentHistoryPage() {
   const fetchHistory = async () => {
     try {
       // Hardcoded student email matching the backend executor logic
-      const res = await fetch("http://localhost:3000/api/submissions/student/student@example.com");
+      const res = await fetch("http://localhost:5000/api/submissions/student/student@example.com");
       const data = await res.json();
       setSubmissions(data);
     } catch (e) {
