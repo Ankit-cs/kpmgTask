@@ -18,6 +18,14 @@
 - **One-Click AI Error Analysis:** Students can request instant, contextual AI explanations and fix suggestions for any compilation or runtime errors they encounter in the sandbox.
 - **Framer Motion UI:** A completely responsive, highly polished Next.js frontend featuring fluid animations and a split-pane Monaco editor.
 
+## Recent Updates
+
+- **Teacher Review Portal (HITL)**: Full implementation of the teacher dashboard (`/teacher/review`) for human-in-the-loop review, editing, and approval of AI-generated doubt drafts.
+- **Instant Draft Visibility**: Bridged the gap between speed and safety by showing AI drafts to students instantly with a bright orange "Pending Teacher Verification" badge. The badge clears once a teacher approves it.
+- **0xMemory Context Linking Fix**: Resolved a dummy-ID mismatch between the Sandbox and the Doubt Board. The AI now successfully injects the student's actual broken code submissions into the doubt resolution context!
+- **Host-Mode Fallback & Windows Support**: Added `MODE=host` fallback for local execution when Docker is unavailable. Optimized C++ compilation timeouts to support heavy standard libraries (`bits/stdc++.h`) on Windows.
+- **Doubt Management**: Added a "Refresh Board" button for students and full cascading deletion capabilities for doubts and their associated drafts.
+
 ## Overview
 
 Evaluating code manually is slow, and generic AI feedback is often noisy or insecure. This platform bridges the gap by functioning as an intelligent, full-stack Learning Management System (LMS). 
