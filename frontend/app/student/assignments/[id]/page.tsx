@@ -158,6 +158,15 @@ export default function AssignmentSandboxPage() {
           <div className="p-6 border-b border-white/10 bg-[#09090b]">
             <h2 className="text-sm font-black tracking-widest uppercase text-white/90 mb-4">Description</h2>
             <p className="text-zinc-300 text-sm whitespace-pre-wrap leading-relaxed">{assignment.description}</p>
+            
+            {assignment.constraints && (
+              <div className="mt-6">
+                <h2 className="text-sm font-black tracking-widest uppercase text-white/90 mb-4">Constraints</h2>
+                <div className="bg-[#1e1e24] p-4 rounded-md border border-white/10">
+                  <p className="text-zinc-300 text-sm font-mono whitespace-pre-wrap">{assignment.constraints}</p>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex-1 overflow-hidden">

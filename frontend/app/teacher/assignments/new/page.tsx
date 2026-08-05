@@ -11,6 +11,7 @@ export default function NewAssignmentPage() {
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [constraints, setConstraints] = useState("");
   const [testCases, setTestCases] = useState([{ input: "", expectedOut: "" }]);
   const [loading, setLoading] = useState(false);
 
@@ -45,13 +46,14 @@ export default function NewAssignmentPage() {
       const res = await fetch("http://localhost:3000/api/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, testCases })
+        body: JSON.stringify({ title, description, constraints, testCases })
       });
       
       if (res.ok) {
         alert("Assignment created successfully! Test cases have been pushed to Cloudflare KV.");
         setTitle("");
         setDescription("");
+        setConstraints("");
         setTestCases([{ input: "", expectedOut: "" }]);
       } else {
         const err = await res.json();
@@ -96,6 +98,17 @@ export default function NewAssignmentPage() {
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="Describe the problem..."
+              />
+            </div>
+            
+            <div className="mt-4">
+              <label className="block text-sm text-gray-400 mb-1">Constraints</label>
+              <textarea 
+                required
+                className="w-full bg-[#0a0a0f] border border-white/20 rounded p-3 h-24 focus:outline-none focus:border-[#EDFF66]"
+                value={constraints}
+                onChange={e => setConstraints(e.target.value)}
+                placeholder="e.g. 1 <= nums.length <= 10^4"
               />
             </div>
           </div>
