@@ -3,13 +3,16 @@ import Redis from "ioredis";
 import { executeCode } from "../judge/executor.js";
 
 const RedisClass = (Redis as any).default || Redis;
-const redisConnection = new RedisClass(process.env.REDIS_URL || "redis://localhost:6379", {
+
+const createRedisConnection = () => new RedisClass(process.env.REDIS_URL || "redis://localhost:6379", {
     maxRetriesPerRequest: null, // Required by bullmq
+    family: 4, // Prevent IPv6 timeout issues with Upstash
+    tls: process.env.REDIS_URL?.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined
 });
 
 // Create the Queue
 export const executionQueue = new Queue("code-execution", {
-    connection: redisConnection
+    connection: createRedisConnection()
 });
 
 // Create the Worker that processes jobs
@@ -22,10 +25,11 @@ export const executionWorker = new Worker("code-execution", async (job) => {
     
     return result;
 }, {
-    connection: redisConnection,
+    connection: createRedisConnection(),
     concurrency: 5, // Process up to 5 executions concurrently
     lockDuration: 60000, // 60 seconds lock to prevent job stall timeouts during AI feedback
     stalledInterval: 60000,
+    autorun: false,
 });
 
 executionWorker.on("completed", (job) => {
