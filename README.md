@@ -4,6 +4,8 @@
 
 > *Empowering education through secure, scalable, and intelligent automated workflows.*
 
+**Live Demo:** [https://kpmgv1.vercel.app](https://kpmgv1.vercel.app)
+
 ## Highlights
 
 - **Bulletproof Code Sandbox:** Ephemeral, isolated Docker containers ensure 100% safe execution of untrusted student code.
@@ -81,7 +83,7 @@ Create a `.env` file in the `backend/` directory.
 
 ```env
 # Database Configuration
-DATABASE_URL="postgresql://postgres:password@localhost:5432/grading_portal"
+DATABASE_URL="postgresql://neondb_owner:npg_ypKbB2S7QAdE@ep-summer-dream-avx3prop-pooler.c-11.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 # BullMQ Redis Configuration
 REDIS_URL="redis://localhost:6379"
