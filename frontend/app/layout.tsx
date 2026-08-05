@@ -14,7 +14,6 @@ export const metadata: Metadata = {
 };
 
 import { RoleProvider } from "../components/RoleProvider";
-import { Navbar } from "../components/Navbar";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,7 +23,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-full flex flex-col">
         <RoleProvider>
-          <Navbar />
           {children}
         </RoleProvider>
       </body>

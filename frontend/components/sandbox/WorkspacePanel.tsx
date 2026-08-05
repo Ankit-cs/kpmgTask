@@ -13,6 +13,7 @@ interface WorkspacePanelProps {
   code: string;
   onCodeChange: (code: string) => void;
   language: string;
+  onLanguageChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   output?: any;
   onSaveTemplate: () => void;
 }
@@ -22,6 +23,7 @@ export function WorkspacePanel({
   code,
   onCodeChange,
   language,
+  onLanguageChange,
   output,
   onSaveTemplate,
 }: WorkspacePanelProps) {
@@ -85,8 +87,25 @@ export function WorkspacePanel({
           </div>
         </VisualizerShell>
       ) : (
-        <div className="w-full h-full p-4 relative">
-          <div className="absolute top-6 right-8 z-20">
+        <div className="w-full h-full pt-14 pb-4 px-4 relative flex flex-col">
+          <div className="absolute top-3 left-4 right-4 z-20 flex justify-between items-center">
+            {onLanguageChange ? (
+              <select
+                value={language}
+                onChange={onLanguageChange}
+                className="bg-[#09090b] border border-white/10 rounded-md py-1.5 px-3 text-xs text-white focus:outline-none focus:border-[#EDFF66] transition-colors"
+              >
+                <option value="cpp">C++</option>
+                <option value="java">Java</option>
+                <option value="python">Python</option>
+                <option value="nodejs">Node.js</option>
+                <option value="c">C</option>
+                <option value="go">Go</option>
+              </select>
+            ) : (
+              <div className="text-xs text-white/50 uppercase tracking-widest">{language}</div>
+            )}
+            
             <Button
               onClick={handleSave}
               size="sm"
@@ -97,11 +116,14 @@ export function WorkspacePanel({
               {saved ? "Template Saved!" : "Save as Template"}
             </Button>
           </div>
-          <CodeEditor
-            code={code}
-            onChange={(val) => onCodeChange(val || "")}
-            language={language}
-          />
+          
+          <div className="flex-1 rounded-md overflow-hidden border border-white/5 relative">
+            <CodeEditor
+              code={code}
+              onChange={(val) => onCodeChange(val || "")}
+              language={language}
+            />
+          </div>
         </div>
       )}
     </div>

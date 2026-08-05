@@ -6,20 +6,19 @@ import { Sparkles, Loader2 } from "lucide-react";
 interface ExecutionPanelProps {
   code: string;
   language: string;
-  onLanguageChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   input: string;
   onInputChange: (input: string) => void;
   output: any;
   loading: boolean;
-  onExecute: () => void;
+  onExecute: (runInput: string) => void;
   isVisualizing: boolean;
   onToggleVisualizer: () => void;
+  testCases?: { id: string; input: string; expectedOut: string }[];
 }
 
 export function ExecutionPanel({
   code,
   language,
-  onLanguageChange,
   input,
   onInputChange,
   output,
@@ -27,9 +26,12 @@ export function ExecutionPanel({
   onExecute,
   isVisualizing,
   onToggleVisualizer,
+  testCases,
 }: ExecutionPanelProps) {
   const [isAnalyzing, setIsAnalyzing] = React.useState(false);
   const [aiAnalysis, setAiAnalysis] = React.useState<any>(null);
+  const [activeTab, setActiveTab] = React.useState<"testcases" | "custom">("testcases");
+  const [selectedTestCaseIndex, setSelectedTestCaseIndex] = React.useState(0);
 
   // Clear analysis when new output comes in
   React.useEffect(() => {
@@ -59,45 +61,95 @@ export function ExecutionPanel({
     }
   };
 
+  const handleRunClick = () => {
+    let runInput = input;
+    if (activeTab === "testcases" && testCases && testCases.length > 0) {
+      runInput = testCases[selectedTestCaseIndex].input;
+    }
+    onExecute(runInput);
+  };
+
   return (
     <div className="w-full h-full flex flex-col z-10 bg-[#09090b]/60 backdrop-blur-md">
-
+      {/* Tabs */}
+      <div className="flex border-b border-white/10 px-4">
+        <button
+          onClick={() => setActiveTab("testcases")}
+          className={`py-3 px-4 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${
+            activeTab === "testcases"
+              ? "border-[#EDFF66] text-[#EDFF66]"
+              : "border-transparent text-zinc-500 hover:text-zinc-300"
+          }`}
+        >
+          Test Cases
+        </button>
+        <button
+          onClick={() => setActiveTab("custom")}
+          className={`py-3 px-4 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${
+            activeTab === "custom"
+              ? "border-[#EDFF66] text-[#EDFF66]"
+              : "border-transparent text-zinc-500 hover:text-zinc-300"
+          }`}
+        >
+          Custom Input
+        </button>
+      </div>
 
       <div className="flex-1 overflow-auto p-5 space-y-6">
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2">
-            Language
-          </label>
-          <select
-            value={language}
-            onChange={onLanguageChange}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-md p-2 text-sm focus:outline-none focus:border-primary"
-          >
-            <option value="cpp">C++</option>
-            <option value="java">Java</option>
-            <option value="python">Python</option>
-            <option value="nodejs">Node.js</option>
-            <option value="c">C</option>
-            <option value="go">Go</option>
-          </select>
-        </div>
+        {activeTab === "testcases" ? (
+          <div>
+            {testCases && testCases.length > 0 ? (
+              <>
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                  {testCases.map((tc, idx) => (
+                    <button
+                      key={tc.id || idx}
+                      onClick={() => setSelectedTestCaseIndex(idx)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-mono transition-colors whitespace-nowrap ${
+                        selectedTestCaseIndex === idx
+                          ? "bg-white/10 text-white border border-white/20"
+                          : "bg-white/5 text-zinc-400 border border-transparent hover:bg-white/10"
+                      }`}
+                    >
+                      Case {idx + 1}
+                    </button>
+                  ))}
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.16em] text-white/40 mb-2">
+                      Input
+                    </label>
+                    <div className="w-full bg-white/[0.03] border border-white/10 rounded-lg p-3 text-xs font-mono text-zinc-300 whitespace-pre-wrap">
+                      {testCases[selectedTestCaseIndex].input}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-zinc-500 text-xs text-center py-8">
+                No test cases available for this assignment.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-[0.16em] text-white/40 mb-2">
+              Custom Input
+            </label>
+            <textarea
+              value={input}
+              onChange={(e) => onInputChange(e.target.value)}
+              rows={4}
+              className="w-full bg-white/[0.03] border border-white/10 rounded-lg p-3 text-xs font-mono focus:outline-none focus:border-white/30 transition-colors"
+              placeholder="Enter custom input here..."
+            />
+          </div>
+        )}
 
-        <div>
-          <label className="block text-[10px] font-black uppercase tracking-[0.16em] text-white/40 mb-2">
-            Custom Input
-          </label>
-          <textarea
-            value={input}
-            onChange={(e) => onInputChange(e.target.value)}
-            rows={4}
-            className="w-full bg-white/[0.03] border border-white/10 rounded-lg p-3 text-xs font-mono focus:outline-none focus:border-white/30 transition-colors"
-            placeholder="Enter custom input here..."
-          />
-        </div>
-
-        <div className="flex gap-3">
+        <div className="flex gap-3 pt-4 border-t border-white/10">
           <Button
-            onClick={onExecute}
+            onClick={handleRunClick}
             disabled={loading || isVisualizing}
             className="flex-1 h-11 bg-[#EDFF66] hover:bg-[#d9ec4d] text-[#050507] font-black tracking-[0.09em] uppercase text-xs rounded-lg transition-all"
           >

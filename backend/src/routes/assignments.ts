@@ -46,15 +46,15 @@ router.post("/", async (req: Request, res: Response) => {
                 constraints,
                 testCases: {
                     create: testCases.map((tc: any) => ({
-                        input: "STORED_IN_KV",
-                        expectedOut: "STORED_IN_KV"
+                        input: tc.input,
+                        expectedOut: tc.expectedOut
                     }))
                 }
             },
             include: { testCases: true }
         });
 
-        // Push actual payloads to Cloudflare KV
+        // Also push to KV for compatibility with executor (if it uses KV)
         for (let i = 0; i < assignment.testCases.length; i++) {
             const tc = assignment.testCases[i];
             const originalTc = testCases[i];
@@ -70,5 +70,48 @@ router.post("/", async (req: Request, res: Response) => {
         res.status(500).json({ error: "Internal server error" });
     }
 });
+// Update an assignment (Teacher only)
+router.put("/:id", async (req: Request, res: Response) => {
+    try {
+        const { title, description, constraints, testCases } = req.body;
+        const assignmentId = req.params.id;
 
+        // Delete existing test cases
+        await prisma.testCase.deleteMany({
+            where: { assignmentId }
+        });
+
+        // Update assignment and recreate test cases
+        const assignment = await prisma.assignment.update({
+            where: { id: assignmentId },
+            data: {
+                title,
+                description,
+                constraints,
+                testCases: {
+                    create: testCases.map((tc: any) => ({
+                        input: tc.input,
+                        expectedOut: tc.expectedOut
+                    }))
+                }
+            },
+            include: { testCases: true }
+        });
+
+        // Also push to KV
+        for (let i = 0; i < assignment.testCases.length; i++) {
+            const tc = assignment.testCases[i];
+            const originalTc = testCases[i];
+            await putTestCase(assignment.id, tc.id, {
+                input: originalTc.input,
+                expectedOut: originalTc.expectedOut
+            });
+        }
+
+        res.json(assignment);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
 export default router;

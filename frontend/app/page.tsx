@@ -1,138 +1,79 @@
-// @ts-nocheck
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { io, Socket } from "socket.io-client";
+import { useRole } from "../components/RoleProvider";
+import { GraduationCap, Briefcase } from "lucide-react";
 
-import { ExecutionPanel } from "../components/sandbox/ExecutionPanel";
-import { WorkspacePanel } from "../components/sandbox/WorkspacePanel";
+export default function GlobalLandingPage() {
+  const router = useRouter();
+  const { setRole } = useRole();
 
-export default function SandboxTestPage() {
-  const [language, setLanguage] = useState("cpp");
-  const [code, setCode] = useState("");
-  const [input, setInput] = useState("");
-  const [output, setOutput] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [isVisualizing, setIsVisualizing] = useState(false);
-  const [socket, setSocket] = useState<Socket | null>(null);
-
-  useEffect(() => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    const newSocket = io(API_URL);
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.disconnect();
-    };
-  }, []);
-
-  const defaultSnippets: Record<string, string> = {
-    cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Hello Sandbox!" << std::endl;\n    return 0;\n}',
-    java: 'public class Solution {\n    public static void main(String[] args) {\n        System.out.println("Hello Sandbox!");\n    }\n}',
-    c: '#include <stdio.h>\n\nint main() {\n    printf("Hello Sandbox!\\n");\n    return 0;\n}',
-    go: 'package main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hello Sandbox!")\n}',
-    nodejs: 'console.log("Hello Sandbox!");',
-    python: 'print("Hello Sandbox!")',
-  };
-
-  const [snippets, setSnippets] = useState<Record<string, string>>(defaultSnippets);
-
-  React.useEffect(() => {
-    const saved = localStorage.getItem("user_templates");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setSnippets(parsed);
-        setCode(parsed[language] || defaultSnippets[language]);
-      } catch (e) {
-        setCode(defaultSnippets[language]);
-      }
+  const handleLogin = (role: "STUDENT" | "TEACHER") => {
+    setRole(role);
+    if (role === "STUDENT") {
+      router.push("/student");
     } else {
-      setCode(defaultSnippets[language]);
+      router.push("/teacher");
     }
-  }, []);
-
-  const handleSaveTemplate = () => {
-    const newSnippets = { ...snippets, [language]: code };
-    setSnippets(newSnippets);
-    localStorage.setItem("user_templates", JSON.stringify(newSnippets));
-  };
-
-  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const lang = e.target.value;
-    setLanguage(lang);
-    setCode(snippets[lang] || defaultSnippets[lang]);
-  };
-
-  const handleExecute = async () => {
-    if (!socket) return;
-    setLoading(true);
-    setOutput(null);
-    
-    // Set up a one-time listener for this execution
-    const tempListener = (data: any) => {
-      if (data.jobId) {
-        socket.once(`job_completed_${data.jobId}`, (res: any) => {
-          setOutput(res.result);
-          setLoading(false);
-        });
-        socket.once(`job_failed_${data.jobId}`, (res: any) => {
-          setOutput({ error: res.error || "Execution failed" });
-          setLoading(false);
-        });
-      }
-    };
-    
-    socket.once('job_queued', tempListener);
-    socket.once('execution_error', (res: any) => {
-      setOutput({ error: res.error });
-      setLoading(false);
-    });
-
-    socket.emit('execute_code', { language, code, input });
   };
 
   return (
-    <div className="flex h-screen bg-[#050507] text-white font-inter relative overflow-hidden">
-
-      <div className="flex flex-col lg:flex-row h-full w-full relative z-10">
-        <motion.div 
-          initial={{ x: -50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="w-full lg:w-1/3 h-[50vh] lg:h-full border-b lg:border-b-0 lg:border-r border-white/10"
-        >
-          <ExecutionPanel
-            code={code}
-            language={language}
-            onLanguageChange={handleLanguageChange}
-            input={input}
-            onInputChange={setInput}
-            output={output}
-            loading={loading}
-            onExecute={handleExecute}
-            isVisualizing={isVisualizing}
-            onToggleVisualizer={() => setIsVisualizing(!isVisualizing)}
-          />
-        </motion.div>
-
-        <motion.div 
-          initial={{ x: 50, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="w-full lg:w-2/3 h-[50vh] lg:h-full p-4"
-        >
-          <WorkspacePanel
-            isVisualizing={isVisualizing}
-            code={code}
-            onCodeChange={setCode}
-            language={language}
-            output={output}
-            onSaveTemplate={handleSaveTemplate}
-          />
-        </motion.div>
+    <div className="min-h-screen bg-[#050507] text-white flex flex-col items-center justify-center p-8 relative overflow-hidden font-inter">
+      {/* Background Decor */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#EDFF66]/10 blur-[120px] rounded-full" />
       </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="z-10 text-center max-w-2xl w-full"
+      >
+        <h1 className="text-5xl md:text-6xl font-black tracking-widest mb-6">
+          <span className="text-[#EDFF66]">CODE</span>
+          <span className="text-white">JUDGE</span>
+        </h1>
+        <p className="text-zinc-400 text-lg mb-12 max-w-lg mx-auto">
+          Welcome to the AI-Powered Code Grading & Doubt Resolution Portal. Please select your role to continue.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-xl mx-auto">
+          {/* Student Button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => handleLogin("STUDENT")}
+            className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl bg-[#0a0a0f] border border-[#EDFF66]/30 hover:bg-[#0c0c12] hover:border-[#EDFF66]/60 transition-all group shadow-xl shadow-black/50"
+          >
+            <div className="w-16 h-16 rounded-full bg-[#EDFF66]/10 flex items-center justify-center group-hover:bg-[#EDFF66]/20 transition-colors">
+              <GraduationCap className="w-8 h-8 text-[#EDFF66]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white mb-1">Login as Student</h2>
+              <p className="text-xs text-zinc-500">Access sandbox and assignments</p>
+            </div>
+          </motion.button>
+
+          {/* Teacher Button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => handleLogin("TEACHER")}
+            className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl bg-[#0a0a0f] border border-purple-500/30 hover:bg-[#0c0c12] hover:border-purple-500/60 transition-all group shadow-xl shadow-black/50"
+          >
+            <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
+              <Briefcase className="w-8 h-8 text-purple-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white mb-1">Login as Teacher</h2>
+              <p className="text-xs text-zinc-500">Review doubts and manage tasks</p>
+            </div>
+          </motion.button>
+        </div>
+      </motion.div>
     </div>
   );
 }

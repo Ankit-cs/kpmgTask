@@ -86,7 +86,7 @@ export default function AssignmentSandboxPage() {
     setCode(snippets[lang] || defaultSnippets[lang]);
   };
 
-  const handleExecute = async () => {
+  const handleExecute = async (runInput: string) => {
     if (!socket) return;
     setLoading(true);
     setOutput(null);
@@ -110,7 +110,7 @@ export default function AssignmentSandboxPage() {
       setLoading(false);
     });
 
-    socket.emit('execute_code', { language, code, input });
+    socket.emit('execute_code', { language, code, input: runInput });
   };
 
   const handleSubmit = async () => {
@@ -148,14 +148,14 @@ export default function AssignmentSandboxPage() {
 
       <div className="flex flex-col lg:flex-row h-[calc(100vh-3.5rem)] w-full relative z-10">
         
-        {/* Left Column: Description + Execution Panel */}
+        {/* Left Column: Description + TestCases + Execution Panel */}
         <motion.div 
           initial={{ x: -50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
           className="w-full lg:w-1/3 h-[50vh] lg:h-full border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col"
         >
-          <div className="p-6 border-b border-white/10 bg-[#09090b]">
+          <div className="p-6 border-b border-white/10 bg-[#09090b] flex-none overflow-y-auto max-h-[50%]">
             <h2 className="text-sm font-black tracking-widest uppercase text-white/90 mb-4">Description</h2>
             <p className="text-zinc-300 text-sm whitespace-pre-wrap leading-relaxed">{assignment.description}</p>
             
@@ -167,13 +167,32 @@ export default function AssignmentSandboxPage() {
                 </div>
               </div>
             )}
+            
+            {assignment.testCases && assignment.testCases.length > 0 && (
+              <div className="mt-6">
+                <h2 className="text-sm font-black tracking-widest uppercase text-white/90 mb-4">Examples</h2>
+                <div className="space-y-4">
+                  {assignment.testCases.slice(0, 2).map((tc: any, i: number) => (
+                    <div key={i} className="bg-[#1e1e24] p-4 rounded-md border border-white/10">
+                      <div className="mb-2">
+                        <span className="text-xs font-bold text-zinc-500 uppercase">Input:</span>
+                        <pre className="text-sm text-zinc-300 font-mono mt-1 whitespace-pre-wrap">{tc.input}</pre>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-zinc-500 uppercase">Output:</span>
+                        <pre className="text-sm text-zinc-300 font-mono mt-1 whitespace-pre-wrap">{tc.expectedOut}</pre>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex-1 overflow-hidden">
             <ExecutionPanel
               code={code}
               language={language}
-              onLanguageChange={handleLanguageChange}
               input={input}
               onInputChange={setInput}
               output={output}
@@ -181,6 +200,7 @@ export default function AssignmentSandboxPage() {
               onExecute={handleExecute}
               isVisualizing={isVisualizing}
               onToggleVisualizer={() => setIsVisualizing(!isVisualizing)}
+              testCases={assignment.testCases}
             />
           </div>
         </motion.div>
@@ -197,6 +217,7 @@ export default function AssignmentSandboxPage() {
             code={code}
             onCodeChange={setCode}
             language={language}
+            onLanguageChange={handleLanguageChange}
             output={output}
             onSaveTemplate={handleSaveTemplate}
           />
