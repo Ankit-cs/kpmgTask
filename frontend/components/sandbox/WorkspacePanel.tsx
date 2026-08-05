@@ -4,7 +4,8 @@ import { CodeEditor } from "../CodeEditor";
 import VisualizerShell from "../visualizer/VisualizerShell";
 import ControlBar from "../visualizer/ControlBar";
 import CodePanel from "../visualizer/CodePanel";
-
+import { Button } from "../ui/button";
+import { Save } from "lucide-react";
 import ExplanationLog from "../visualizer/ExplanationLog";
 
 interface WorkspacePanelProps {
@@ -13,6 +14,7 @@ interface WorkspacePanelProps {
   onCodeChange: (code: string) => void;
   language: string;
   output?: any;
+  onSaveTemplate: () => void;
 }
 
 export function WorkspacePanel({
@@ -21,7 +23,15 @@ export function WorkspacePanel({
   onCodeChange,
   language,
   output,
+  onSaveTemplate,
 }: WorkspacePanelProps) {
+  const [saved, setSaved] = React.useState(false);
+
+  const handleSave = () => {
+    onSaveTemplate();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
   // Convert raw code string to Visualizer CodePanel format
   const codeLines = code.split('\n').map((line, i) => ({
     n: i + 1,
@@ -75,7 +85,18 @@ export function WorkspacePanel({
           </div>
         </VisualizerShell>
       ) : (
-        <div className="w-full h-full p-4">
+        <div className="w-full h-full p-4 relative">
+          <div className="absolute top-6 right-8 z-20">
+            <Button
+              onClick={handleSave}
+              size="sm"
+              variant="outline"
+              className={`h-8 text-xs transition-colors ${saved ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"}`}
+            >
+              <Save className="w-3.5 h-3.5 mr-2" />
+              {saved ? "Template Saved!" : "Save as Template"}
+            </Button>
+          </div>
           <CodeEditor
             code={code}
             onChange={(val) => onCodeChange(val || "")}
