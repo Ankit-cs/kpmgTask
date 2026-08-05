@@ -88,7 +88,7 @@ router.get("/pending", async (req: Request, res: Response) => {
 // Teacher approves a draft
 router.post("/:responseId/approve", async (req: Request, res: Response) => {
     try {
-        const { responseId } = req.params;
+        const responseId = req.params.responseId as string;
         const response = await prisma.doubtResponse.update({
             where: { id: responseId },
             data: { status: "APPROVED" }
@@ -102,7 +102,7 @@ router.post("/:responseId/approve", async (req: Request, res: Response) => {
 // Teacher rejects a draft
 router.post("/:responseId/reject", async (req: Request, res: Response) => {
     try {
-        const { responseId } = req.params;
+        const responseId = req.params.responseId as string;
         const response = await prisma.doubtResponse.update({
             where: { id: responseId },
             data: { status: "REJECTED" }
@@ -116,7 +116,7 @@ router.post("/:responseId/reject", async (req: Request, res: Response) => {
 // Teacher edits a draft before approving
 router.put("/:responseId/edit", async (req: Request, res: Response): Promise<void> => {
     try {
-        const { responseId } = req.params;
+        const responseId = req.params.responseId as string;
         const { content } = req.body;
         
         if (!content) {
