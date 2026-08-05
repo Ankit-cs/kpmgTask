@@ -39,7 +39,7 @@ export default function AssignmentSandboxPage() {
   useEffect(() => {
     async function fetchAssignment() {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
         const res = await fetch(`${API_URL}/api/assignments/${assignmentId}`);
         if (res.ok) {
           const data = await res.json();
@@ -66,7 +66,7 @@ export default function AssignmentSandboxPage() {
       setCode(defaultSnippets[language]);
     }
 
-    const newSocket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000");
+    const newSocket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000");
     setSocket(newSocket);
 
     return () => {
