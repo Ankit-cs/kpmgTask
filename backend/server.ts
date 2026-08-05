@@ -8,7 +8,14 @@ import assignmentsRouter from "./src/routes/assignments.js";
 import submissionsRouter from "./src/routes/submissions.js";
 
 const app = express();
-app.use(cors());
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.LOCAL_FRONTEND_URL
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: allowedOrigins,
+}));
 app.use(express.json());
 
 app.use("/api/doubts", doubtsRouter);
@@ -19,7 +26,8 @@ app.get("/", (req: Request, res: Response) => {
     res.send("Hello world")
 });
 
-import { executionQueue } from "./src/queue/executionQueue.js";
+// Mock jobs for polling (Bypassing Redis for now)
+const mockJobs = new Map<string, any>();
 
 app.post("/api/execute", async (req: Request, res: Response): Promise<void> => {
     try {
@@ -34,14 +42,41 @@ app.post("/api/execute", async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // Add job to the queue
-        const job = await executionQueue.add("execute", { language, code, input });
+        // Generate mock job ID
+        const jobId = Math.random().toString(36).substring(7);
+        mockJobs.set(jobId, { status: "waiting" });
         
         // Return 202 Accepted with Job ID
-        res.status(202).json({ jobId: job.id, status: "queued" });
+        res.status(202).json({ jobId, status: "queued" });
+        
+        // Run asynchronously
+        executeCode(language, code, input).then(result => {
+            mockJobs.set(jobId, { status: "completed", result });
+            io.emit(`job_completed_${jobId}`, { result });
+        }).catch(error => {
+            mockJobs.set(jobId, { status: "failed", error: error.message });
+            io.emit(`job_failed_${jobId}`, { error: error.message });
+        });
     } catch (error: any) {
         console.error("Queue error:", error);
         res.status(500).json({ error: "Internal server error queuing job" });
+    }
+});
+
+import { analyzeRuntimeError } from "./src/ai/reviewers.js";
+
+app.post("/api/analyze-error", async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { language, code, stderr } = req.body;
+        if (!language || !code || !stderr) {
+            res.status(400).json({ error: "Missing required fields" });
+            return;
+        }
+        const analysis = await analyzeRuntimeError(language, code, stderr);
+        res.json(analysis);
+    } catch (error) {
+        console.error("Analysis error:", error);
+        res.status(500).json({ error: "Failed to analyze error" });
     }
 });
 
@@ -49,38 +84,70 @@ app.post("/api/execute", async (req: Request, res: Response): Promise<void> => {
 app.get("/api/execute/:jobId", async (req: Request, res: Response): Promise<void> => {
     try {
         const jobId = req.params.jobId as string;
-        const job = await executionQueue.getJob(jobId);
+        const job = mockJobs.get(jobId);
         
         if (!job) {
             res.status(404).json({ error: "Job not found" });
             return;
         }
 
-        const state = await job.getState();
-        if (state === "completed") {
-            res.json({ status: "completed", result: job.returnvalue });
-        } else if (state === "failed") {
-            res.json({ status: "failed", error: job.failedReason });
-        } else {
-            res.json({ status: state }); // "waiting", "active", etc.
-        }
+        res.json(job);
     } catch (error) {
         res.status(500).json({ error: "Error fetching job status" });
     }
 });
 
-const PORT = 3001;
-app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`);
-    // Initialize the docker worker pool when server starts
-    try {
-        await initPool();
-    } catch (error) {
-        console.error("Failed to initialize worker pool:", error);
+import http from 'http';
+import { Server } from 'socket.io';
+
+const PORT = process.env.PORT || 5000;
+const httpServer = http.createServer(app);
+
+const io = new Server(httpServer, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
     }
 });
-// Server initialized with dynamic docker detection
 
+io.on('connection', (socket) => {
+    socket.on('execute_code', async (payload) => {
+        try {
+            const { language, code, input } = payload;
+            const jobId = Math.random().toString(36).substring(7);
+            
+            socket.emit('job_queued', { jobId });
+            
+            executeCode(language, code, input).then(result => {
+                io.emit(`job_completed_${jobId}`, { result });
+            }).catch(error => {
+                io.emit(`job_failed_${jobId}`, { error: error.message });
+            });
+        } catch (error) {
+            socket.emit('execution_error', { error: 'Failed to queue job' });
+        }
+    });
+});
 
+httpServer.listen(PORT, async () => {
+    console.log(`Server running on port ${PORT} (Redis Disabled)`);
+    // Initialize the docker worker pool when server starts
+    try {
+        if (process.env.MODE !== "host") {
+            const { initPool } = await import("./src/judge/workerPool.js");
+            await initPool();
+        }
+        
+        // Graceful shutdown
+        const shutdown = async () => {
+            console.log("\n🛑 Gracefully shutting down...");
+            process.exit(0);
+        };
+        process.on("SIGTERM", shutdown);
+        process.on("SIGINT", shutdown);
+        process.on("SIGUSR2", shutdown); // nodemon restart signal
 
-
+    } catch (e) {
+        console.error("Failed to initialize worker pool:", e);
+    }
+});
