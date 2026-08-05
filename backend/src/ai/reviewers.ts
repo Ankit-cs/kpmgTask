@@ -245,3 +245,49 @@ export async function generateTestCase(code: string, assignmentId: string): Prom
         return null;
     }
 }
+
+const errorAnalysisSchema = z.object({
+  type: z.string().describe("The type of error (e.g., SyntaxError, CompilationError, RuntimeError, TypeError)"),
+  line: z.number().nullable().describe("The exact line number in the user's code where the error occurred, or null if unknown"),
+  suggestion: z.string().describe("A concise, educational suggestion on how to fix the error")
+});
+
+const errorAnalysisParser = StructuredOutputParser.fromZodSchema(errorAnalysisSchema);
+
+const errorAnalysisPrompt = PromptTemplate.fromTemplate(`
+You are an expert programming tutor helping a student debug their code.
+The student executed the following {language} code and encountered an error.
+
+###STUDENT_CODE_START###
+{code}
+###STUDENT_CODE_END###
+
+###ERROR_OUTPUT_START###
+{stderr}
+###ERROR_OUTPUT_END###
+
+Analyze the error output and the code to determine exactly what went wrong.
+Be extremely brief and educational in your suggestion. Do not write the full correct code for them, just explain what they did wrong and how to fix that specific line.
+
+{format_instructions}
+`);
+
+export async function analyzeRuntimeError(language: string, code: string, stderr: string): Promise<any> {
+    if (!process.env.GEMINI_API_KEY && !process.env.GROQ_API_KEY) {
+        return { type: "Unknown Error", line: null, suggestion: "AI debugging is currently unavailable." };
+    }
+    try {
+        const chain = errorAnalysisPrompt.pipe(llm).pipe(errorAnalysisParser);
+        const result = await chain.invoke({ 
+            language, 
+            code, 
+            stderr, 
+            format_instructions: errorAnalysisParser.getFormatInstructions() 
+        });
+        
+        return result;
+    } catch (e) {
+        console.error("AI Error Analysis failed", e);
+        return { type: "Unknown Error", line: null, suggestion: "AI encountered an error analyzing this issue." };
+    }
+}
