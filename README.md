@@ -14,6 +14,8 @@
 - **High-Availability LLM Engine:** A resilient LangChain pipeline defaults to Google Gemini (1.5-Flash) but instantly hot-swaps to Groq (Llama-3) upon failure.
 - **0xMemory Historical Context Injection:** The AI Teaching Assistant dynamically retrieves a student's past code submissions from the database and injects them into its context window, providing highly personalized guidance.
 - **Human-In-The-Loop (HITL) Workflow:** A strict state machine allows teachers to intercept, edit, approve, or reject AI-drafted responses before publishing them to the student board.
+- **Unified Student Dashboard:** A seamless, persistent navigation layout for students to easily switch between the Sandbox, Questions/Assignments, and Submission History without losing state.
+- **One-Click AI Error Analysis:** Students can request instant, contextual AI explanations and fix suggestions for any compilation or runtime errors they encounter in the sandbox.
 - **Framer Motion UI:** A completely responsive, highly polished Next.js frontend featuring fluid animations and a split-pane Monaco editor.
 
 ## Overview
@@ -52,7 +54,13 @@ graph TD
 ```
 
 ### 1. Frontend Client (Next.js)
-The presentation layer is built on React 18 and Next.js App Router. It leverages Tailwind CSS for utility-first styling and Framer Motion for complex entrance and exit animations. The core IDE experience is powered by Microsoft's Monaco Editor, giving students a VS-Code-like experience in the browser. When a user executes code, the frontend enters a highly optimized, non-blocking HTTP polling loop to fetch the async results from the BullMQ processor.
+The presentation layer is built on React 18 and Next.js App Router. It leverages Tailwind CSS for utility-first styling and Framer Motion for complex entrance and exit animations. The core IDE experience is powered by Microsoft's Monaco Editor, giving students a VS-Code-like experience in the browser. 
+
+The application is structured into distinct portals:
+- **Student Dashboard:** Features a unified, persistent layout with a top navigation bar, allowing students to seamlessly browse assignments, review their submission history, and experiment in the code sandbox.
+- **Teacher Review Portal:** A dedicated interface for human-in-the-loop validation of AI-generated responses.
+
+When a user executes code, the frontend utilizes an optimized HTTP polling loop or WebSockets to fetch the execution results. It also features a built-in AI Error Analysis tool that provides instant, contextual help for compilation errors directly within the execution panel.
 
 ### 2. Execution Engine (Docker & BullMQ)
 Security is the absolute priority when dealing with untrusted user code. Instead of executing code directly on the Node.js server, the Express backend pushes execution payloads into a Redis-backed BullMQ queue. A background worker picks up these jobs and spins up an ephemeral Docker container for every single submission. The container lacks internet access and is heavily restricted by memory and CPU constraints. Once the execution finishes (or times out), the container is immediately destroyed.
