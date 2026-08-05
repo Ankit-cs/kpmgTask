@@ -37,6 +37,7 @@ model Assignment {
   id          String       @id @default(uuid())
   title       String
   description String
+  constraints String?
   testCases   TestCase[]
   submissions Submission[]
 }
