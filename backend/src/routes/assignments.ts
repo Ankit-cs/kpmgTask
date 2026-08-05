@@ -16,16 +16,34 @@ router.get("/", async (req: Request, res: Response) => {
     }
 });
 
+// Get a specific assignment by ID
+router.get("/:id", async (req: Request, res: Response) => {
+    try {
+        const assignment = await prisma.assignment.findUnique({
+            where: { id: req.params.id as string },
+            include: { testCases: true } // Need testCases to show how many there are, but maybe not expectedOut? The UI can hide it.
+        });
+        if (!assignment) {
+            res.status(404).json({ error: "Assignment not found" });
+            return;
+        }
+        res.json(assignment);
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
 import { putTestCase } from "../services/cloudflare-kv.js";
 
 // Create a new assignment (Teacher only)
 router.post("/", async (req: Request, res: Response) => {
     try {
-        const { title, description, testCases } = req.body;
+        const { title, description, constraints, testCases } = req.body;
         const assignment = await prisma.assignment.create({
             data: {
                 title,
                 description,
+                constraints,
                 testCases: {
                     create: testCases.map((tc: any) => ({
                         input: "STORED_IN_KV",
